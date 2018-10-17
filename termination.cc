@@ -24,6 +24,8 @@
 
 using std::string;
 
+// 默认 C++ 异常处理程序
+// 功能还是有点溜的，居然可以打印异常的 backtrace，
 static void termHandler()
 {
   if( logFilePtr && logFilePtr->isOpen() )
@@ -94,6 +96,7 @@ static void termHandler()
   void * stackAddrs[ maxDepth ];
   char ** stackStrings;
 
+  // 获取发生异常的代码的调用栈
   stackDepth = backtrace( stackAddrs, maxDepth );
   stackStrings = backtrace_symbols( stackAddrs, stackDepth );
 
@@ -141,6 +144,7 @@ static void termHandler()
 
 #endif
 
+  // 将异常的调用栈、异常信息 等写入文件
   QTemporaryFile file;
 
   if ( file.open() )
@@ -161,6 +165,9 @@ static void termHandler()
   }
 }
 
+// set_terminate 传入一个函数指针，这个 termHandler 是缺省的异常处理程序
+// 也就是说，如果只 throw, 不 catch 的话，异常就会被这玩意处理
+//ref: http://www.cplusplus.com/reference/exception/set_terminate/
 void installTerminationHandler()
 {
   std::set_terminate( termHandler );

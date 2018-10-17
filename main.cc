@@ -39,6 +39,8 @@
 #include "lionsupport.h"
 #endif
 
+// 以下代码，日志记录
+// 日志分为 5 个等级，输出到文件或者 stderr
 #if ( QT_VERSION >= QT_VERSION_CHECK( 5, 0, 0 ) )
 
 void gdMessageHandler( QtMsgType type, const QMessageLogContext &context, const QString &mess )
@@ -108,6 +110,7 @@ void gdMessageHandler( QtMsgType type, const char *msg_ )
   }
 }
 
+// 作者定义的一个类，用于存放解析出来的命令行参数
 class GDCommandLine
 {
   bool crashReport, logFile;
@@ -144,6 +147,7 @@ public:
   { return word; }
 };
 
+// GDCommandLine 的构造函数的实现
 GDCommandLine::GDCommandLine( int argc, char **argv ):
 crashReport( false ),
 logFile( false )
@@ -163,6 +167,8 @@ logFile( false )
     for( int i = 1; i < argc; i++ )
       arguments.push_back( QString::fromLocal8Bit( argv[ i ] ) );
 #endif
+    // 以上代码将参数放到 arguments 这个 vector 中去  
+    // 以下代码解析 arguments, 等等，这个解析也太？？？ 为毛不用 argp?
     // Parse command line
     for( int i = 0; i < arguments.size(); i++ )
     {
@@ -208,6 +214,9 @@ public:
   ~LogFilePtrGuard() { logFilePtr = 0; }
 };
 
+//
+// 程序入口
+//
 int main( int argc, char ** argv )
 {
   #ifdef Q_OS_MAC
@@ -222,6 +231,7 @@ int main( int argc, char ** argv )
 #endif
   #endif
 
+// 这。。。。真尼玛神仙代码,也就是为了 windows 搞出来的？
   // The following clause fixes a race in the MinGW runtime where throwing
   // exceptions for the first time in several threads simultaneously can cause
   // an abort(). This code throws first exception in a safe, single-threaded
@@ -239,8 +249,11 @@ int main( int argc, char ** argv )
   setlocale( LC_ALL, "" ); // use correct char set mapping
 #endif
 
+  // 读取命令行参数
   GDCommandLine gdcl( argc, argv );
 
+  // 为什么携带了 --err-file 就崩溃了呢？
+  // 我猜是这样的：如果程序 crash 了，就会再次启动自己，并附上 -err-file 参数，然后弹个框告诉用户自己刚刚 crash 了
   if ( gdcl.needCrashReport() )
   {
     // The program has crashed -- show a message about it
@@ -264,6 +277,8 @@ int main( int argc, char ** argv )
     return 0;
   }
 
+  // 以下是正常启动流程
+  // 设置异常处理程序（打印stack trace）
   installTerminationHandler();
 
   #ifdef __DO_DEBUG
@@ -288,6 +303,7 @@ int main( int argc, char ** argv )
   QHotkeyApplication app( "GoldenDict", argc, argv );
   LogFilePtrGuard logFilePtrGuard;
 
+  // 如果已经有一个实例在运行了
   if ( app.isRunning() )
   {
     bool wasMessage = false;
@@ -349,11 +365,13 @@ int main( int argc, char ** argv )
 
   app.installTranslator( &translator );
 
+  // 加载程序配置
   Config::Class cfg;
   for( ; ; )
   {
     try
     {
+      // 这是GoldenDict的配置, 大体和程序的首选项对应 
       cfg = Config::load();
     }
     catch( Config::exError & )
@@ -425,6 +443,7 @@ int main( int argc, char ** argv )
   QWebSecurityOrigin::addLocalScheme( "gdlookup" );
 #endif
 
+  // 实例化窗口对象
   MainWindow m( cfg );
 
   app.addDataCommiter( m );
@@ -441,6 +460,7 @@ int main( int argc, char ** argv )
   if( gdcl.needTranslateWord() )
     m.wordReceived( gdcl.wordToTranslate() );
 
+  // 程序将阻塞在下一行代码，等待用户的交互
   int r = app.exec();
 
   app.removeDataCommiter( m );
